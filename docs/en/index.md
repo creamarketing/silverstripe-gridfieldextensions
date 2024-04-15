@@ -152,3 +152,17 @@ $paginator->setItemsPerPage(500);
 
 The first shown record will be maintained across page size changes, and the number of pages and current page will be
 recalculated on each request, based on the current first shown record and page size.
+
+Nested GridFields
+-----------------
+
+The `GridFieldNestedForm` component allows you to nest GridFields in the UI. It can be used with `DataObject` subclasses
+with the `Hierarchy` extension, or by specifying the relation used for nesting.
+
+```php
+// Basic usage, defaults to the Children-method for Hierarchy objects.
+$grid->getConfig()->addComponent(GridFieldNestedForm::create());
+
+// Usage with custom relation
+$grid->getConfig()->addComponent(GridFieldNestedForm::create()->setRelationName('MyRelation'));
+```
