@@ -78,10 +78,15 @@ class GridFieldNestedForm_ItemRequest extends GridFieldDetailForm_ItemRequest
         }
 
         $this->record->invokeWithExtensions('updateNestedConfig', $config);
+
+        $title = _t(get_class($this->record).'.'.strtoupper($relationName), ' ');
         
         $fields = new FieldList(
-            $gridField = new GridField($this->component->getGridField()->getName().'['.GridFieldNestedForm::POST_KEY.']['.$this->record->ID.']', _t(get_class($this->record).'.'.strtoupper($relationName), ' '), $list, $config)
+            $gridField = new GridField($this->component->getGridField()->getName().'['.GridFieldNestedForm::POST_KEY.']['.$this->record->ID.']', $title, $list, $config)
         );
+        if (!trim($title)) {
+            $gridField->addExtraClass('empty-title');
+        }
         $gridField->setModelClass($relationClass);
         $gridField->setAttribute('data-class', str_replace('\\', '-', $relationClass));
         $gridField->addExtraClass('nested');

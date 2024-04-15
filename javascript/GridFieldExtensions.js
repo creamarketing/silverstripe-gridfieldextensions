@@ -530,6 +530,13 @@
 				gridField.setState('GridFieldNestedForm', currState['GridFieldNestedForm']);
 				if (toggleState) {
 					if (!$(this).closest('tr').next('.nested-gridfield').length) {
+                        // add loading indicator until the nested gridfield is loaded
+                        let colspan = gridField.find('.grid-field__title-row th').attr('colspan');
+                        let loadingCell = $('<td />')
+                            .addClass('ss-gridfield-item loading')
+                            .attr('colspan', colspan);
+                        $(this).closest('tr').after($('<tr class="nested-gridfield" />').append(loadingCell));
+
 						let data = {};
 						let stateInput = gridField.find('input.gridstate').first();
 						data[stateInput.attr('name')] = JSON.stringify(currState);
@@ -633,7 +640,7 @@
 						let childID = ui.item.attr('data-id');
 						let parentIntoChild = $(e.target).closest('.grid-field[data-name*="[GridFieldNestedForm]['+childID+']"]').length;
 						if (parentIntoChild) {
-							// parent dragged into child, or widget dragged to root, cancel sorting
+							// parent dragged into child, cancel sorting
 							ui.sender.sortable("cancel");
 							e.preventDefault();
 							e.stopPropagation();
