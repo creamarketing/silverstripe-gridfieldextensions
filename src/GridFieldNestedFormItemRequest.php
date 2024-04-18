@@ -46,7 +46,8 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
         $relationName = $this->component->getRelationName();
         $list = $this->record->$relationName();
         if ($relationName == 'Children' && $this->record->hasExtension(Hierarchy::class)) {
-            // we really need a HasManyList for Hierarchy objects, otherwise adding new items will not properly set the ParentID
+            // we really need a HasManyList for Hierarchy objects,
+            // otherwise adding new items will not properly set the ParentID
             $list = HasManyList::create(get_class($this->record), 'ParentID')
                         ->setDataQueryParam($this->record->getInheritableQueryParams())
                         ->forForeignID($this->record->ID);
@@ -93,7 +94,17 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
         $title = _t(get_class($this->record).'.'.strtoupper($relationName), ' ');
         
         $fields = new FieldList(
-            $gridField = new GridField($this->component->getGridField()->getName().'['.GridFieldNestedForm::POST_KEY.']['.$this->record->ID.']', $title, $list, $config)
+            $gridField = new GridField(
+                sprintf(
+                    '%s[%s][%s]',
+                    $this->component->getGridField()->getName(),
+                    GridFieldNestedForm::POST_KEY,
+                    $this->record->ID
+                ),
+                $title,
+                $list,
+                $config
+            )
         );
         if (!trim($title)) {
             $gridField->addExtraClass('empty-title');
@@ -137,7 +148,11 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
             ]));
         } else {
             $items->push(ArrayData::create([
-                'Title' => _t('SilverStripe\\Forms\\GridField\\GridField.NewRecord', 'New {type}', ['type' => $this->record->i18n_singular_name()]),
+                'Title' => _t(
+                    'SilverStripe\\Forms\\GridField\\GridField.NewRecord',
+                    'New {type}',
+                    ['type' => $this->record->i18n_singular_name()]
+                ),
                 'Link' => false
             ]));
         }

@@ -172,9 +172,14 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
                 return '';
             }
             if ($this->canExpandCheck) {
-                if (is_callable($this->canExpandCheck) && !call_user_func($this->canExpandCheck, $record)) {
+                if (is_callable($this->canExpandCheck)
+                    && !call_user_func($this->canExpandCheck, $record)
+                ) {
                     return '';
-                } elseif (is_string($this->canExpandCheck) && $record->hasMethod($this->canExpandCheck) && !$this->record->{$this->canExpandCheck}($record)) {
+                } elseif (is_string($this->canExpandCheck)
+                    && $record->hasMethod($this->canExpandCheck)
+                    && !$this->record->{$this->canExpandCheck}($record)
+                ) {
                     return '';
                 }
             }
@@ -182,7 +187,11 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             $className = str_replace('\\', '-', get_class($record));
             $state = $gridField->State->GridFieldNestedForm;
             $stateRelation = $className.'-'.$record->ID.'-'.$this->relationName;
-            if (!$this->forceCloseNested && (($this->expandNested && $record->$relationName()->count() > 0) || ($state && (int)$state->getData($stateRelation) === 1))) {
+            $openState = $state && (int)$state->getData($stateRelation) === 1;
+            $forceExpand = $this->expandNested && $record->$relationName()->count() > 0;
+            if (!$this->forceCloseNested
+                && ($forceExpand || $openState)
+            ) {
                 $toggle = 'open';
             }
 
@@ -228,7 +237,11 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         if ($id) {
             // should be possible either on parent or child grid field, or nested grid field from parent
             $parent = $to ? $list->byID($to) : null;
-            if (!$parent && $to && $gridField->getForm()->getController() instanceof GridFieldNestedFormItemRequest && $gridField->getForm()->getController()->getRecord()->ID == $to) {
+            if (!$parent
+                && $to
+                && $gridField->getForm()->getController() instanceof GridFieldNestedFormItemRequest
+                && $gridField->getForm()->getController()->getRecord()->ID == $to
+            ) {
                 $parent = $gridField->getForm()->getController()->getRecord();
             }
             $child = $list->byID($id);
@@ -285,12 +298,19 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             return '';
         }
         $manager = $this->getStateManager();
-        if ($gridStateStr = $manager->getStateFromRequest($gridField, $request ?: $gridField->getForm()->getRequestHandler()->getRequest())) {
+        $stateRequest = $request ?: $gridField->getForm()->getRequestHandler()->getRequest();
+        if ($gridStateStr = $manager->getStateFromRequest($gridField, $stateRequest)) {
             $gridField->getState(false)->setValue($gridStateStr);
         }
         $this->gridField = $gridField;
         $this->record = $record;
-        $itemRequest = GridFieldNestedFormItemRequest::create($gridField, $this, $record, $gridField->getForm()->getController(), $this->name);
+        $itemRequest = GridFieldNestedFormItemRequest::create(
+            $gridField,
+            $this,
+            $record,
+            $gridField->getForm()->getController(),
+            $this->name
+        );
         if ($request) {
             $pjaxFragment = $request->getHeader('X-Pjax');
             $targetPjaxFragment = str_replace('\\', '-', get_class($record)).'-'.$record->ID.'-'.$this->relationName;
@@ -349,7 +369,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             $gridField->getState(false)->setValue($value['GridState']);
         }
         $manager = $this->getStateManager();
-        if ($gridStateStr = $manager->getStateFromRequest($gridField, $gridField->getForm()->getRequestHandler()->getRequest())) {
+        $request = $gridField->getForm()->getRequestHandler()->getRequest();
+        if ($gridStateStr = $manager->getStateFromRequest($gridField, $request)) {
             $gridField->getState(false)->setValue($gridStateStr);
         }
         foreach ($value[self::POST_KEY] as $recordID => $nestedData) {
@@ -364,7 +385,10 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     public function getManipulatedData(GridField $gridField, SS_List $dataList)
     {
-        if ($this->relationName == 'Children' && DataObject::has_extension($gridField->getModelClass(), Hierarchy::class) && $gridField->getForm()->getController() instanceof ModelAdmin) {
+        if ($this->relationName == 'Children'
+            && DataObject::has_extension($gridField->getModelClass(), Hierarchy::class)
+            && $gridField->getForm()->getController() instanceof ModelAdmin
+        ) {
             $dataList = $dataList->filter('ParentID', 0);
         }
         return $dataList;
