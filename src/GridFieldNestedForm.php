@@ -359,11 +359,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     public function handleSave(GridField $gridField, DataObjectInterface $record)
     {
+        $postKey = self::POST_KEY;
         $value = $gridField->Value();
-        if (!isset($value[self::POST_KEY]) || !is_array($value[self::POST_KEY])) {
-            return;
-        }
-
         if (isset($value['GridState']) && $value['GridState']) {
             // set grid state from value, to store open/closed toggle state for nested forms
             $gridField->getState(false)->setValue($value['GridState']);
@@ -373,12 +370,16 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         if ($gridStateStr = $manager->getStateFromRequest($gridField, $request)) {
             $gridField->getState(false)->setValue($gridStateStr);
         }
-        foreach ($value[self::POST_KEY] as $recordID => $nestedData) {
-            $record = $gridField->getList()->byID($recordID);
-            if ($record) {
-                $nestedGridField = $this->handleNestedItem($gridField, null, $record);
-                $nestedGridField->setValue($nestedData);
-                $nestedGridField->saveInto($record);
+        foreach ($request->postVars() as $key => $val) {
+            if (preg_match("/{$gridField->getName()}-{$postKey}-(\d+)/", $key, $matches)) {
+                $recordID = $matches[1];
+                $nestedData = $val;
+                $record = $gridField->getList()->byID($recordID);
+                if ($record) {
+                    $nestedGridField = $this->handleNestedItem($gridField, null, $record);
+                    $nestedGridField->setValue($nestedData);
+                    $nestedGridField->saveInto($record);
+                }
             }
         }
     }

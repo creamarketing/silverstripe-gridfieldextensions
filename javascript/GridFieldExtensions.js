@@ -612,6 +612,8 @@
 		$('.ss-gridfield-orderable.has-nested > .grid-field__table > tbody, .ss-gridfield-orderable.nested > .grid-field__table > tbody').entwine({
 			onadd: function() {
 				this._super();
+				let preventReorderUpdate = false;
+				let updateTimeouts = [];
 				let gridField = this.getGridField();
 				if (gridField.data("url-movetoparent")) {
 					let parentID = 0;
@@ -638,7 +640,7 @@
 							window.clearTimeout(timeout);
 						}
 						let childID = ui.item.attr('data-id');
-						let parentIntoChild = $(e.target).closest('.grid-field[data-name*="[GridFieldNestedForm]['+childID+']"]').length;
+						let parentIntoChild = $(e.target).closest('.grid-field[data-name*="-GridFieldNestedForm-'+childID+'"]').length;
 						if (parentIntoChild) {
 							// parent dragged into child, cancel sorting
 							ui.sender.sortable("cancel");

@@ -65,6 +65,10 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
             if ($relationClass == get_class($this->record)) {
                 $config->removeComponentsByType(GridFieldSortableHeader::class);
                 $config->removeComponentsByType(GridFieldFilterHeader::class);
+
+                if ($this->gridField->getConfig()->getComponentByType(GridFieldOrderableRows::class)) {
+                    $config->addComponent(new GridFieldOrderableRows());
+                }
             }
 
             if ($this->record->hasExtension(Hierarchy::class)) {
@@ -96,7 +100,7 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
         $fields = new FieldList(
             $gridField = new GridField(
                 sprintf(
-                    '%s[%s][%s]',
+                    '%s-%s-%s',
                     $this->component->getGridField()->getName(),
                     GridFieldNestedForm::POST_KEY,
                     $this->record->ID
