@@ -21,7 +21,7 @@ use Symbiote\GridFieldExtensions\GridFieldAddNewInlineButton;
 use Symbiote\GridFieldExtensions\GridFieldEditableColumns;
 use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
 
-class GridFieldNestedForm_ItemRequest extends GridFieldDetailForm_ItemRequest
+class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
 {
     
     public function Link($action = null)

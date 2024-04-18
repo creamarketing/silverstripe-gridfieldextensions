@@ -52,45 +52,78 @@ class GridFieldNestedForm extends GridFieldDetailForm implements
         $this->name = $name;
     }
     
+    /**
+     * Get the grid field that this component is attached to
+     * @return GridField
+     */
     public function getGridField()
     {
         return $this->gridField;
     }
 
+    /**
+     * Get the relation name to use for the nested grid fields
+     * @return string
+     */
     public function getRelationName()
     {
         return $this->relationName;
     }
     
+    /**
+     * Set the relation name to use for the nested grid fields
+     * @param string $relationName
+     */
     public function setRelationName($relationName)
     {
         $this->relationName = $relationName;
         return $this;
     }
 
+    /**
+     * Get whether the nested grid fields should be inline editable
+     * @return boolean
+     */
     public function getInlineEditable()
     {
         return $this->inlineEditable;
     }
 
+    /**
+     * Set whether the nested grid fields should be inline editable
+     * @param boolean $editable
+     */
     public function setInlineEditable($editable)
     {
         $this->inlineEditable = $editable;
         return $this;
     }
     
+    /**
+     * Set whether the nested grid fields should be expanded by default
+     * @param boolean $expandNested
+     */
     public function setExpandNested($expandNested)
     {
         $this->expandNested = $expandNested;
         return $this;
     }
 
+    /**
+     * Set whether the nested grid fields should be forced closed on load
+     * @param boolean $forceClosed
+     */
     public function setForceClosedNested($forceClosed)
     {
         $this->forceCloseNested = $forceClosed;
         return $this;
     }
 
+    /**
+     * Set a callback to check which items in this grid that should show the expand link
+     * for nested gridfields. The callback should return a boolean value.
+     * @param callable $checkFunction
+     */
     public function setCanExpandCheck($checkFunction)
     {
         $this->canExpandCheck = $checkFunction;
@@ -186,7 +219,7 @@ class GridFieldNestedForm extends GridFieldDetailForm implements
         if ($id) {
             // should be possible either on parent or child grid field, or nested grid field from parent
             $parent = $to ? $list->byID($to) : null;
-            if (!$parent && $to && $gridField->getForm()->getController() instanceof GridFieldNestedForm_ItemRequest && $gridField->getForm()->getController()->getRecord()->ID == $to) {
+            if (!$parent && $to && $gridField->getForm()->getController() instanceof GridFieldNestedFormItemRequest && $gridField->getForm()->getController()->getRecord()->ID == $to) {
                 $parent = $gridField->getForm()->getController()->getRecord();
             }
             $child = $list->byID($id);
@@ -248,7 +281,7 @@ class GridFieldNestedForm extends GridFieldDetailForm implements
         }
         $this->gridField = $gridField;
         $this->record = $record;
-        $itemRequest = new GridFieldNestedForm_ItemRequest($gridField, $this, $record, $gridField->getForm()->getController(), $this->name);
+        $itemRequest = GridFieldNestedFormItemRequest::create($gridField, $this, $record, $gridField->getForm()->getController(), $this->name);
         if ($request) {
             $pjaxFragment = $request->getHeader('X-Pjax');
             $targetPjaxFragment = str_replace('\\', '-', get_class($record)).'-'.$record->ID.'-'.$this->relationName;
