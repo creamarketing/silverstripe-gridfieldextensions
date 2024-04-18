@@ -8,12 +8,15 @@ use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
+use SilverStripe\Core\Extensible;
+use SilverStripe\Forms\GridField\AbstractGridFieldComponent;
 use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\GridField\GridFieldDetailForm;
 use SilverStripe\Forms\GridField\GridField_ColumnProvider;
 use SilverStripe\Forms\GridField\GridField_DataManipulator;
 use SilverStripe\Forms\GridField\GridField_HTMLProvider;
 use SilverStripe\Forms\GridField\GridField_SaveHandler;
+use SilverStripe\Forms\GridField\GridField_URLHandler;
+use SilverStripe\Forms\GridField\GridFieldStateAware;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataObjectInterface;
@@ -26,12 +29,14 @@ use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
 /**
  * Gridfield component for nesting GridFields
  */
-class GridFieldNestedForm extends GridFieldDetailForm implements
+class GridFieldNestedForm extends AbstractGridFieldComponent implements
+    GridField_URLHandler,
     GridField_ColumnProvider,
     GridField_SaveHandler,
     GridField_HTMLProvider,
     GridField_DataManipulator
 {
+    use Extensible, GridFieldStateAware;
     
     const POST_KEY = 'GridFieldNestedForm';
 
@@ -39,6 +44,10 @@ class GridFieldNestedForm extends GridFieldDetailForm implements
         'handleNestedItem'
     ];
     
+    /**
+     * @var string
+     */
+    protected $name;
     protected $expandNested = false;
     protected $forceCloseNested = false;
     protected $gridField = null;

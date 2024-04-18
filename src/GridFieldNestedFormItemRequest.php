@@ -3,12 +3,14 @@
 namespace Symbiote\GridFieldExtensions;
 
 use SilverStripe\Control\Controller;
+use SilverStripe\Control\Director;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldAddNewButton;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
 use SilverStripe\Forms\GridField\GridFieldDataColumns;
+use SilverStripe\Forms\GridField\GridFieldDetailForm;
 use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
 use SilverStripe\Forms\GridField\GridFieldEditButton;
 use SilverStripe\Forms\GridField\GridFieldFilterHeader;
@@ -17,6 +19,7 @@ use SilverStripe\Forms\GridField\GridFieldSortableHeader;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\HasManyList;
 use SilverStripe\ORM\Hierarchy\Hierarchy;
+use SilverStripe\View\ArrayData;
 use Symbiote\GridFieldExtensions\GridFieldAddNewInlineButton;
 use Symbiote\GridFieldExtensions\GridFieldEditableColumns;
 use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
@@ -32,6 +35,14 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
     public function ItemEditForm()
     {
         $config = new GridFieldConfig_RecordEditor();
+        /** @var GridFieldDetailForm */
+        $detailForm = $config->getComponentByType(GridFieldDetailForm::class);
+        $detailForm->setItemEditFormCallback(function (Form $form, $itemRequest) {
+            $breadcrumbs = $itemRequest->Breadcrumbs(false);
+            if ($breadcrumbs && $breadcrumbs->exists()) {
+                $form->Backlink = $breadcrumbs->first()->Link;
+            }
+        });
         $relationName = $this->component->getRelationName();
         $list = $this->record->$relationName();
         if ($relationName == 'Children' && $this->record->hasExtension(Hierarchy::class)) {
@@ -113,7 +124,30 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
         
         /** @var ArrayList $items */
         $items = $this->popupController->Breadcrumbs($unlinked);
-        
+
+        if (!$items) {
+            $items = ArrayList::create();
+        }
+
+        if ($this->record && $this->record->ID) {
+            $title = ($this->record->Title) ? $this->record->Title : "#{$this->record->ID}";
+            $items->push(ArrayData::create([
+                'Title' => $title,
+                'Link' => parent::Link()
+            ]));
+        } else {
+            $items->push(ArrayData::create([
+                'Title' => _t('SilverStripe\\Forms\\GridField\\GridField.NewRecord', 'New {type}', ['type' => $this->record->i18n_singular_name()]),
+                'Link' => false
+            ]));
+        }
+
+        foreach ($items as $item) {
+            if ($item->Link) {
+                $item->Link = $this->gridField->addAllStateToUrl(Director::absoluteURL($item->Link));
+            }
+        }
+
         $this->extend('updateBreadcrumbs', $items);
         return $items;
     }
