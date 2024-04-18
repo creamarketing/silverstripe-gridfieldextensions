@@ -8,7 +8,7 @@ use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
-use SilverStripe\Core\Extensible;
+use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Forms\GridField\AbstractGridFieldComponent;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridField_ColumnProvider;
@@ -16,6 +16,7 @@ use SilverStripe\Forms\GridField\GridField_DataManipulator;
 use SilverStripe\Forms\GridField\GridField_HTMLProvider;
 use SilverStripe\Forms\GridField\GridField_SaveHandler;
 use SilverStripe\Forms\GridField\GridField_URLHandler;
+use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
 use SilverStripe\Forms\GridField\GridFieldStateAware;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
@@ -36,13 +37,15 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     GridField_HTMLProvider,
     GridField_DataManipulator
 {
-    use Extensible, GridFieldStateAware;
+    use Configurable, GridFieldStateAware;
     
     const POST_KEY = 'GridFieldNestedForm';
 
     private static $allowed_actions = [
         'handleNestedItem'
     ];
+
+    private static $max_nesting_level = 10;
     
     /**
      * @var string
@@ -55,6 +58,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     protected $relationName = 'Children';
     protected $inlineEditable = false;
     protected $canExpandCheck = null;
+    protected $maxNestingLevel = null;
     
     public function __construct($name = 'NestedForm')
     {
@@ -139,6 +143,32 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         return $this;
     }
 
+    /**
+     * Set the maximum nesting level allowed for nested grid fields
+     * @param int $level
+     */
+    public function setMaxNestingLevel($level)
+    {
+        $this->maxNestingLevel = $level;
+        return $this;
+    }
+
+    public function getMaxNestingLevel()
+    {
+        return $this->maxNestingLevel ?: $this->config()->max_nesting_level;
+    }
+
+    protected function getNestingLevel($gridField)
+    {
+        $level = 0;
+        $c = $gridField->getForm()->getController();
+        while ($c && $c instanceof GridFieldDetailForm_ItemRequest) {
+            $c = $c->getController();
+            $level++;
+        }
+        return $level;
+    }
+
     public function getColumnMetadata($gridField, $columnName)
     {
         return ['title' => ''];
@@ -163,6 +193,10 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     public function getColumnContent($gridField, $record, $columnName)
     {
+        $nestingLevel = $this->getNestingLevel($gridField);
+        if ($nestingLevel >= $this->getMaxNestingLevel()) {
+            return '';
+        }
         $gridField->addExtraClass('has-nested');
         if ($record->ID && $record->exists()) {
             $this->gridField = $gridField;
@@ -286,6 +320,10 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     public function handleNestedItem(GridField $gridField, $request = null, $record = null)
     {
+        $nestingLevel = $this->getNestingLevel($gridField);
+        if ($nestingLevel >= $this->getMaxNestingLevel()) {
+            throw new Exception('Max nesting level reached');
+        }
         if (!$record && $request) {
             $recordID = $request->param('RecordID');
             $record = $gridField->getList()->byID($recordID);
