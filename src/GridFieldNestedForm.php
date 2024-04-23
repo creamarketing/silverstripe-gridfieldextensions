@@ -266,53 +266,61 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         /** @var DataList */
         $list = $gridField->getList();
         $id = isset($move['id']) ? (int) $move['id'] : null;
+        if (!$id) {
+            throw new HTTPResponse_Exception('Missing ID', 400);
+        }
         $to = isset($move['parent']) ? (int)$move['parent'] : null;
-        $parent = null;
-        if ($id) {
-            // should be possible either on parent or child grid field, or nested grid field from parent
-            $parent = $to ? $list->byID($to) : null;
-            if (!$parent
-                && $to
-                && $gridField->getForm()->getController() instanceof GridFieldNestedFormItemRequest
-                && $gridField->getForm()->getController()->getRecord()->ID == $to
-            ) {
-                $parent = $gridField->getForm()->getController()->getRecord();
+        // should be possible either on parent or child grid field, or nested grid field from parent
+        $parent = $to ? $list->byID($to) : null;
+        if (!$parent
+            && $to
+            && $gridField->getForm()->getController() instanceof GridFieldNestedFormItemRequest
+            && $gridField->getForm()->getController()->getRecord()->ID == $to
+        ) {
+            $parent = $gridField->getForm()->getController()->getRecord();
+        }
+        $child = $list->byID($id);
+        // we need either a parent or a child, or a move to top level at this stage
+        if (!($parent || $child || $to === 0)) {
+            throw new HTTPResponse_Exception('Invalid request', 400);
+        }
+        // parent or child might be from another grid field, so we need to search via DataList in some cases
+        if (!$parent && $to) {
+            $parent = DataList::create($gridField->getModelClass())->byID($to);
+        }
+        if (!$child) {
+            $child = DataList::create($gridField->getModelClass())->byID($id);
+        }
+        if ($child) {
+            if (!$child->canEdit()) {
+                throw new HTTPResponse_Exception('Not allowed', 403);
             }
-            $child = $list->byID($id);
-            if ($parent || $child || $to === 0) {
-                if (!$parent && $to) {
-                    $parent = DataList::create($gridField->getModelClass())->byID($to);
+            if ($child->hasExtension(Hierarchy::class)) {
+                $child->ParentID = $parent ? $parent->ID : 0;
+            }
+            // validate that the record is still valid
+            $validationResult = $child->validate();
+            if ($validationResult->isValid()) {
+                if ($child->hasExtension(Versioned::class)) {
+                    $child->writeToStage(Versioned::DRAFT);
+                } else {
+                    $child->write();
                 }
-                if (!$child) {
-                    $child = DataList::create($gridField->getModelClass())->byID($id);
-                }
-                if ($child) {
-                    if ($child->hasExtension(Hierarchy::class)) {
-                        $child->ParentID = $parent ? $parent->ID : 0;
-                    }
-                    $validationResult = $child->validate();
-                    if ($validationResult->isValid()) {
-                        if ($child->hasExtension(Versioned::class)) {
-                            $child->writeToStage(Versioned::DRAFT);
-                        } else {
-                            $child->write();
-                        }
 
-                        /** @var GridFieldOrderableRows */
-                        $orderableRows = $gridField->getConfig()->getComponentByType(GridFieldOrderableRows::class);
-                        if ($orderableRows) {
-                            $orderableRows->setImmediateUpdate(true);
-                            try {
-                                $orderableRows->handleReorder($gridField, $request);
-                            } catch (Exception $e) {
-                            }
-                        }
-                    } else {
-                        $messages = $validationResult->getMessages();
-                        $message = array_pop($messages);
-                        throw new HTTPResponse_Exception($message['message'], 400);
+                // reorder items at the same time, if applicable
+                /** @var GridFieldOrderableRows */
+                $orderableRows = $gridField->getConfig()->getComponentByType(GridFieldOrderableRows::class);
+                if ($orderableRows) {
+                    $orderableRows->setImmediateUpdate(true);
+                    try {
+                        $orderableRows->handleReorder($gridField, $request);
+                    } catch (Exception $e) {
                     }
                 }
+            } else {
+                $messages = $validationResult->getMessages();
+                $message = array_pop($messages);
+                throw new HTTPResponse_Exception($message['message'], 400);
             }
         }
         return $gridField->FieldHolder();
