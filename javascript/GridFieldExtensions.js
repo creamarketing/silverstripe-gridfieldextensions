@@ -1,4 +1,7 @@
 (function($) {
+	let preventReorderUpdate = false;
+	let updateTimeouts = [];
+
 	$.entwine("ss", function($) {
 		/**
 		 * GridFieldAddExistingSearchButton
@@ -612,8 +615,6 @@
 		$('.ss-gridfield-orderable.has-nested > .grid-field__table > tbody, .ss-gridfield-orderable.nested > .grid-field__table > tbody').entwine({
 			onadd: function() {
 				this._super();
-				let preventReorderUpdate = false;
-				let updateTimeouts = [];
 				let gridField = this.getGridField();
 				if (gridField.data("url-movetoparent")) {
 					let parentID = 0;
