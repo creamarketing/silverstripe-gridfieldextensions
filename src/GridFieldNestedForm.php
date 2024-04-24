@@ -104,27 +104,24 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     /**
      * Get the grid field that this component is attached to
-     * @return GridField
      */
-    public function getGridField()
+    public function getGridField(): GridField
     {
         return $this->gridField;
     }
 
     /**
      * Get the relation name to use for the nested grid fields
-     * @return string
      */
-    public function getRelationName()
+    public function getRelationName(): string
     {
         return $this->relationName;
     }
     
     /**
      * Set the relation name to use for the nested grid fields
-     * @param string $relationName
      */
-    public function setRelationName($relationName)
+    public function setRelationName(string $relationName)
     {
         $this->relationName = $relationName;
         return $this;
@@ -132,18 +129,16 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Get whether the nested grid fields should be inline editable
-     * @return boolean
      */
-    public function getInlineEditable()
+    public function getInlineEditable(): bool
     {
         return $this->inlineEditable;
     }
 
     /**
      * Set whether the nested grid fields should be inline editable
-     * @param boolean $editable
      */
-    public function setInlineEditable($editable)
+    public function setInlineEditable(bool $editable)
     {
         $this->inlineEditable = $editable;
         return $this;
@@ -151,9 +146,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     /**
      * Set whether the nested grid fields should be expanded by default
-     * @param boolean $expandNested
      */
-    public function setExpandNested($expandNested)
+    public function setExpandNested(bool $expandNested)
     {
         $this->expandNested = $expandNested;
         return $this;
@@ -161,9 +155,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Set whether the nested grid fields should be forced closed on load
-     * @param boolean $forceClosed
      */
-    public function setForceClosedNested($forceClosed)
+    public function setForceClosedNested(bool $forceClosed)
     {
         $this->forceCloseNested = $forceClosed;
         return $this;
@@ -173,9 +166,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
      * Set a callback function to check which items in this grid that should show the expand link
      * for nested gridfields. The callback should return a boolean value.
      * You can either pass a callable or a method name as a string.
-     * @param callable|string $callback
      */
-    public function setCanExpandCheck($callback)
+    public function setCanExpandCheck(callable|string $callback)
     {
         $this->canExpandCheck = $callback;
         return $this;
@@ -183,9 +175,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Set the maximum nesting level allowed for nested grid fields
-     * @param int $level
      */
-    public function setMaxNestingLevel($level)
+    public function setMaxNestingLevel(int $level)
     {
         $this->maxNestingLevel = $level;
         return $this;
@@ -193,16 +184,14 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Get the max nesting level allowed for this grid field.
-     * @return int
      */
-    public function getMaxNestingLevel()
+    public function getMaxNestingLevel(): int
     {
         return $this->maxNestingLevel ?: static::config()->get('default_max_nesting_level');
     }
 
     /**
      * Check if we are currently at the max nesting level allowed.
-     * @return bool
      */
     protected function atMaxNestingLevel(GridField $gridField): bool
     {
@@ -466,11 +455,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     /**
      * Get the link for the nested grid field
-     *
-     * @param string $action
-     * @return string
      */
-    public function Link($action = null)
+    public function Link($action = null): string
     {
         $link = Director::absoluteURL(Controller::join_links($this->gridField->Link('nested'), $action));
         $manager = $this->getStateManager();
@@ -479,11 +465,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Get the link for the toggle action
-     *
-     * @param string $action
-     * @return string
      */
-    public function ToggleLink($action = null)
+    public function ToggleLink($action = null): string
     {
         $link = Director::absoluteURL(Controller::join_links($this->gridField->Link('toggle'), $action, '?toggle='));
         $manager = $this->getStateManager();
