@@ -517,7 +517,7 @@
 		/**
 		 * GridFieldNestedForm
 		 */
-		$('.grid-field .col-listChildrenLink a').entwine({
+		$('.grid-field .col-listChildrenLink button').entwine({
 			onclick: function(e) {
 				let gridField = $(this).closest('.grid-field');
 				let currState = gridField.getState();
@@ -552,7 +552,7 @@
 						}
 						$.ajax({
 							type: 'POST',
-							url: $(this).attr('href'),
+							url: $(this).attr('data-url'),
 							data: data,
 							headers: {
 								'X-Pjax': pjaxTarget
@@ -572,6 +572,7 @@
 					}
 					$(this).removeClass('font-icon-right-dir');
 					$(this).addClass('font-icon-down-dir');
+					$(this).attr('aria-expanded', 'true');
 				}
 				else {
 					$.ajax({
@@ -580,6 +581,7 @@
 					$(this).closest('tr').next('.nested-gridfield').hide();
 					$(this).removeClass('font-icon-down-dir');
 					$(this).addClass('font-icon-right-dir');
+					$(this).attr('aria-expanded', 'false');
 				}
 				e.preventDefault();
 				e.stopPropagation();
