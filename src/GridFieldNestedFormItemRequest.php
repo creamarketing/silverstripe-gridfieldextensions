@@ -26,7 +26,6 @@ use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
 
 class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
 {
-    
     public function Link($action = null)
     {
         return Controller::join_links($this->component->Link($this->record->ID), $action);
@@ -75,7 +74,7 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
                 $config->addComponent($nestedForm = new GridFieldNestedForm(), GridFieldOrderableRows::class);
                 // use max nesting level from parent component
                 $nestedForm->setMaxNestingLevel($this->component->getMaxNestingLevel());
-                
+
                 /** @var GridFieldOrderableRows */
                 $orderableRows = $config->getComponentByType(GridFieldOrderableRows::class);
                 if ($orderableRows) {

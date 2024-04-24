@@ -6,6 +6,7 @@ use Exception;
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Config\Configurable;
@@ -38,6 +39,9 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 {
     use Configurable, GridFieldStateAware;
     
+    /**
+     * The key used in the post data to identify nested form data
+     */
     const POST_KEY = 'GridFieldNestedForm';
 
     private static $allowed_actions = [
@@ -54,15 +58,42 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     /**
      * @var string
      */
-    protected $name;
-    protected $expandNested = false;
-    protected $forceCloseNested = false;
-    protected $gridField = null;
-    protected $record = null;
-    protected $relationName = 'Children';
-    protected $inlineEditable = false;
-    protected $canExpandCheck = null;
-    protected $maxNestingLevel = null;
+    private $name;
+
+    /**
+     * @var bool
+     */
+    private $expandNested = false;
+
+    /**
+     * @var bool
+     */
+    private $forceCloseNested = false;
+
+    /**
+     * @var GridField
+     */
+    private $gridField = null;
+
+    /**
+     * @var string
+     */
+    private $relationName = 'Children';
+
+    /**
+     * @var bool
+     */
+    private $inlineEditable = false;
+
+    /**
+     * @var callable|string
+     */
+    private $canExpandCheck = null;
+
+    /**
+     * @var int
+     */
+    private $maxNestingLevel = null;
     
     public function __construct($name = 'NestedForm')
     {
@@ -137,13 +168,14 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     }
 
     /**
-     * Set a callback to check which items in this grid that should show the expand link
+     * Set a callback function to check which items in this grid that should show the expand link
      * for nested gridfields. The callback should return a boolean value.
-     * @param callable $checkFunction
+     * You can either pass a callable or a method name as a string.
+     * @param callable|string $callback
      */
-    public function setCanExpandCheck($checkFunction)
+    public function setCanExpandCheck($callback)
     {
-        $this->canExpandCheck = $checkFunction;
+        $this->canExpandCheck = $callback;
         return $this;
     }
 
@@ -212,7 +244,6 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         $gridField->addExtraClass('has-nested');
         if ($record->ID && $record->exists()) {
             $this->gridField = $gridField;
-            $this->record = $record;
             $relationName = $this->getRelationName();
             if (!$record->hasMethod($relationName)) {
                 return '';
@@ -224,7 +255,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
                     return '';
                 } elseif (is_string($this->canExpandCheck)
                     && $record->hasMethod($this->canExpandCheck)
-                    && !$this->record->{$this->canExpandCheck}($record)
+                    && !$record->{$this->canExpandCheck}($record)
                 ) {
                     return '';
                 }
@@ -272,6 +303,11 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         }
     }
 
+    /**
+     * Handle moving a record to a new parent
+     *
+     * @return string
+     */
     public function handleMoveToParent(GridField $gridField, $request)
     {
         $move = $request->postVar('move');
@@ -338,6 +374,14 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         return $gridField->FieldHolder();
     }
     
+    /**
+     * Handle the request to show a nested item
+     *
+     * @param GridField $gridField
+     * @param HTTPRequest|null $request
+     * @param ViewableData|null $record
+     * @return HTTPResponse
+     */
     public function handleNestedItem(GridField $gridField, $request = null, $record = null)
     {
         if ($this->atMaxNestingLevel($gridField)) {
@@ -360,7 +404,6 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             $gridField->getState(false)->setValue($gridStateStr);
         }
         $this->gridField = $gridField;
-        $this->record = $record;
         $itemRequest = GridFieldNestedFormItemRequest::create(
             $gridField,
             $this,
@@ -384,6 +427,13 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         }
     }
 
+    /**
+     * Handle the request to toggle a nested item in the gridfield state
+     *
+     * @param GridField $gridField
+     * @param HTTPRequest|null $request
+     * @param ViewableData|null $record
+     */
     public function toggleNestedItem(GridField $gridField, $request = null, $record = null)
     {
         if (!$record) {
@@ -400,6 +450,12 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         $state->$stateRelation = (int)$request->getVar('toggle');
     }
     
+    /**
+     * Get the link for the nested grid field
+     *
+     * @param string $action
+     * @return string
+     */
     public function Link($action = null)
     {
         $link = Director::absoluteURL(Controller::join_links($this->gridField->Link('nested'), $action));
@@ -407,6 +463,12 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         return $manager->addStateToURL($this->gridField, $link);
     }
 
+    /**
+     * Get the link for the toggle action
+     *
+     * @param string $action
+     * @return string
+     */
     public function ToggleLink($action = null)
     {
         $link = Director::absoluteURL(Controller::join_links($this->gridField->Link('toggle'), $action, '?toggle='));
