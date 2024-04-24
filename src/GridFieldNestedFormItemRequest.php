@@ -119,8 +119,6 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
         $gridField->setAttribute('data-class', str_replace('\\', '-', $relationClass));
         $gridField->addExtraClass('nested');
         $form = new Form($this, 'ItemEditForm', $fields, new FieldList());
-        $form->setStrictFormMethodCheck(false);
-        $form->disableSecurityToken();
 
         $className = str_replace('\\', '-', get_class($this->record));
         $state = $this->gridField->getState()->GridFieldNestedForm;
