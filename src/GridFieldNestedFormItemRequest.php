@@ -72,7 +72,10 @@ class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
             }
 
             if ($this->record->hasExtension(Hierarchy::class)) {
-                $config->addComponent(new GridFieldNestedForm(), GridFieldOrderableRows::class);
+                $config->addComponent($nestedForm = new GridFieldNestedForm(), GridFieldOrderableRows::class);
+                // use max nesting level from parent component
+                $nestedForm->setMaxNestingLevel($this->component->getMaxNestingLevel());
+                
                 /** @var GridFieldOrderableRows */
                 $orderableRows = $config->getComponentByType(GridFieldOrderableRows::class);
                 if ($orderableRows) {
