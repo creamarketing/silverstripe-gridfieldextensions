@@ -24,6 +24,9 @@ use Symbiote\GridFieldExtensions\GridFieldAddNewInlineButton;
 use Symbiote\GridFieldExtensions\GridFieldEditableColumns;
 use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
 
+/**
+ * Request handler class for nested grid field forms.
+ */
 class GridFieldNestedFormItemRequest extends GridFieldDetailForm_ItemRequest
 {
     public function Link($action = null)
