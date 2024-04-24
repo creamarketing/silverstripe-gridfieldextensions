@@ -9,6 +9,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
+use SilverStripe\Control\RequestHandler;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Forms\GridField\AbstractGridFieldComponent;
 use SilverStripe\Forms\GridField\GridField;
@@ -21,6 +22,7 @@ use SilverStripe\Forms\GridField\GridFieldStateAware;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataObjectInterface;
+use SilverStripe\ORM\Filterable;
 use SilverStripe\ORM\Hierarchy\Hierarchy;
 use SilverStripe\ORM\SS_List;
 use SilverStripe\Versioned\Versioned;
@@ -294,13 +296,23 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     }
 
     /**
-     * @param GridField $field
+     * @param GridField $gridField
+     * @return array
      */
-    public function getHTMLFragments($field)
+    public function getHTMLFragments($gridField)
     {
-        if (DataObject::has_extension($field->getModelClass(), Hierarchy::class)) {
-            $field->setAttribute('data-url-movetoparent', $field->Link('movetoparent'));
+        /**
+         * If we have a DataObject with the hierarchy extension, we want to allow moving items to a new parent.
+         * This is enabled by setting the data-url-movetoparent attribute on the grid field, so that the client
+         * javascript can handle the move.
+         * Implemented in getHTMLFragments since this attribute needs to be added before any rendering happens.
+         */
+        if (is_a($gridField->getModelClass(), DataObject::class, true)
+            && DataObject::has_extension($gridField->getModelClass(), Hierarchy::class)
+        ) {
+            $gridField->setAttribute('data-url-movetoparent', $gridField->Link('movetoparent'));
         }
+        return [];
     }
 
     /**
@@ -380,16 +392,17 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
      * @param GridField $gridField
      * @param HTTPRequest|null $request
      * @param ViewableData|null $record
-     * @return HTTPResponse
+     * @return HTTPResponse|RequestHandler
      */
     public function handleNestedItem(GridField $gridField, $request = null, $record = null)
     {
         if ($this->atMaxNestingLevel($gridField)) {
             throw new Exception('Max nesting level reached');
         }
-        if (!$record && $request) {
+        $list = $gridField->getList();
+        if (!$record && $request && $list instanceof Filterable) {
             $recordID = $request->param('RecordID');
-            $record = $gridField->getList()->byID($recordID);
+            $record = $list->byID($recordID);
         }
         if (!$record) {
             return '';
@@ -436,9 +449,10 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
      */
     public function toggleNestedItem(GridField $gridField, $request = null, $record = null)
     {
-        if (!$record) {
+        $list = $gridField->getList();
+        if (!$record && $request && $list instanceof Filterable) {
             $recordID = $request->param('RecordID');
-            $record = $gridField->getList()->byID($recordID);
+            $record = $list->byID($recordID);
         }
         $manager = $this->getStateManager();
         if ($gridStateStr = $manager->getStateFromRequest($gridField, $request)) {
@@ -490,11 +504,13 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             $gridField->getState(false)->setValue($gridStateStr);
         }
         foreach ($request->postVars() as $key => $val) {
-            if (preg_match("/{$gridField->getName()}-{$postKey}-(\d+)/", $key, $matches)) {
+            $list = $gridField->getList();
+            if ($list instanceof Filterable && preg_match("/{$gridField->getName()}-{$postKey}-(\d+)/", $key, $matches)) {
                 $recordID = $matches[1];
                 $nestedData = $val;
-                $record = $gridField->getList()->byID($recordID);
+                $record = $list->byID($recordID);
                 if ($record) {
+                    /** @var GridField */
                     $nestedGridField = $this->handleNestedItem($gridField, null, $record);
                     $nestedGridField->setValue($nestedData);
                     $nestedGridField->saveInto($record);
@@ -506,8 +522,10 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     public function getManipulatedData(GridField $gridField, SS_List $dataList)
     {
         if ($this->relationName == 'Children'
+            && is_a($gridField->getModelClass(), DataObject::class, true)
             && DataObject::has_extension($gridField->getModelClass(), Hierarchy::class)
             && $gridField->getForm()->getController() instanceof ModelAdmin
+            && $dataList instanceof Filterable
         ) {
             $dataList = $dataList->filter('ParentID', 0);
         }
