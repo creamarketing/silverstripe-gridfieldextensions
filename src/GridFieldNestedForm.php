@@ -11,6 +11,7 @@ use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Control\RequestHandler;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Forms\Form;
 use SilverStripe\Forms\GridField\AbstractGridFieldComponent;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridField_ColumnProvider;
@@ -52,50 +53,27 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * The default max nesting level. Nesting further than this will throw an exception.
-     *
-     * @var boolean
      */
-    private static $default_max_nesting_level = 10;
+    private static int $default_max_nesting_level = 10;
     
-    /**
-     * @var string
-     */
-    private $name;
+    private string $name;
 
-    /**
-     * @var bool
-     */
-    private $expandNested = false;
+    private bool $expandNested = false;
 
-    /**
-     * @var bool
-     */
-    private $forceCloseNested = false;
+    private bool $forceCloseNested = false;
 
-    /**
-     * @var GridField
-     */
-    private $gridField = null;
+    private GridField $gridField;
 
-    /**
-     * @var string
-     */
-    private $relationName = 'Children';
+    private string $relationName = 'Children';
 
-    /**
-     * @var bool
-     */
-    private $inlineEditable = false;
+    private bool $inlineEditable = false;
 
     /**
      * @var callable|string
      */
-    private $canExpandCheck = null;
+    private $canExpandCallback = null;
 
-    /**
-     * @var int
-     */
-    private $maxNestingLevel = null;
+    private int $maxNestingLevel = 0;
     
     public function __construct($name = 'NestedForm')
     {
@@ -121,7 +99,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     /**
      * Set the relation name to use for the nested grid fields
      */
-    public function setRelationName(string $relationName)
+    public function setRelationName(string $relationName): static
     {
         $this->relationName = $relationName;
         return $this;
@@ -138,7 +116,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     /**
      * Set whether the nested grid fields should be inline editable
      */
-    public function setInlineEditable(bool $editable)
+    public function setInlineEditable(bool $editable): static
     {
         $this->inlineEditable = $editable;
         return $this;
@@ -147,7 +125,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     /**
      * Set whether the nested grid fields should be expanded by default
      */
-    public function setExpandNested(bool $expandNested)
+    public function setExpandNested(bool $expandNested): static
     {
         $this->expandNested = $expandNested;
         return $this;
@@ -156,7 +134,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     /**
      * Set whether the nested grid fields should be forced closed on load
      */
-    public function setForceClosedNested(bool $forceClosed)
+    public function setForceClosedNested(bool $forceClosed): static
     {
         $this->forceCloseNested = $forceClosed;
         return $this;
@@ -167,16 +145,16 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
      * for nested gridfields. The callback should return a boolean value.
      * You can either pass a callable or a method name as a string.
      */
-    public function setCanExpandCheck(callable|string $callback)
+    public function setCanExpandCallback(callable|string $callback): static
     {
-        $this->canExpandCheck = $callback;
+        $this->canExpandCallback = $callback;
         return $this;
     }
 
     /**
      * Set the maximum nesting level allowed for nested grid fields
      */
-    public function setMaxNestingLevel(int $level)
+    public function setMaxNestingLevel(int $level): static
     {
         $this->maxNestingLevel = $level;
         return $this;
@@ -239,14 +217,14 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             if (!$record->hasMethod($relationName)) {
                 return '';
             }
-            if ($this->canExpandCheck) {
-                if (is_callable($this->canExpandCheck)
-                    && !call_user_func($this->canExpandCheck, $record)
+            if ($this->canExpandCallback) {
+                if (is_callable($this->canExpandCallback)
+                    && !call_user_func($this->canExpandCallback, $record)
                 ) {
                     return '';
-                } elseif (is_string($this->canExpandCheck)
-                    && $record->hasMethod($this->canExpandCheck)
-                    && !$record->{$this->canExpandCheck}($record)
+                } elseif (is_string($this->canExpandCallback)
+                    && $record->hasMethod($this->canExpandCallback)
+                    && !$record->{$this->canExpandCallback}($record)
                 ) {
                     return '';
                 }
@@ -284,13 +262,9 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         ];
     }
 
-    /**
-     * @param GridField $gridField
-     * @return array
-     */
     public function getHTMLFragments($gridField)
     {
-        /**
+        /*
          * If we have a DataObject with the hierarchy extension, we want to allow moving items to a new parent.
          * This is enabled by setting the data-url-movetoparent attribute on the grid field, so that the client
          * javascript can handle the move.
@@ -306,10 +280,8 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Handle moving a record to a new parent
-     *
-     * @return string
      */
-    public function handleMoveToParent(GridField $gridField, $request)
+    public function handleMoveToParent(GridField $gridField, $request): string
     {
         $move = $request->postVar('move');
         /** @var DataList */
@@ -377,14 +349,12 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
     
     /**
      * Handle the request to show a nested item
-     *
-     * @param GridField $gridField
-     * @param HTTPRequest|null $request
-     * @param ViewableData|null $record
-     * @return HTTPResponse|RequestHandler
      */
-    public function handleNestedItem(GridField $gridField, $request = null, $record = null)
-    {
+    public function handleNestedItem(
+        GridField $gridField,
+        HTTPRequest|null $request = null,
+        ViewableData|null $record = null
+    ): HTTPResponse|RequestHandler|Form {
         if ($this->atMaxNestingLevel($gridField)) {
             throw new Exception('Max nesting level reached');
         }
@@ -431,13 +401,12 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     /**
      * Handle the request to toggle a nested item in the gridfield state
-     *
-     * @param GridField $gridField
-     * @param HTTPRequest|null $request
-     * @param ViewableData|null $record
      */
-    public function toggleNestedItem(GridField $gridField, $request = null, $record = null)
-    {
+    public function toggleNestedItem(
+        GridField $gridField,
+        HTTPRequest|null $request = null,
+        ViewableData|null $record = null
+    ) {
         $list = $gridField->getList();
         if (!$record && $request && $list instanceof Filterable) {
             $recordID = $request->param('RecordID');
@@ -488,7 +457,9 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         }
         foreach ($request->postVars() as $key => $val) {
             $list = $gridField->getList();
-            if ($list instanceof Filterable && preg_match("/{$gridField->getName()}-{$postKey}-(\d+)/", $key, $matches)) {
+            if ($list instanceof Filterable
+                && preg_match("/{$gridField->getName()}-{$postKey}-(\d+)/", $key, $matches)
+            ) {
                 $recordID = $matches[1];
                 $nestedData = $val;
                 $record = $list->byID($recordID);
