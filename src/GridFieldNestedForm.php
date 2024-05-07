@@ -215,7 +215,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
             $this->gridField = $gridField;
             $relationName = $this->getRelationName();
             if (!$record->hasMethod($relationName)) {
-                return '';
+                throw new Exception('Invalid relation name');
             }
             if ($this->canExpandCallback) {
                 if (is_callable($this->canExpandCallback)
