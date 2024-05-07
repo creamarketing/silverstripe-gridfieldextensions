@@ -288,7 +288,7 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
         $list = $gridField->getList();
         $id = isset($move['id']) ? (int) $move['id'] : null;
         if (!$id) {
-            throw new HTTPResponse_Exception('Missing ID', 400);
+            throw new HTTPResponse_Exception('Missing ID', 404);
         }
         $to = isset($move['parent']) ? (int)$move['parent'] : null;
         // should be possible either on parent or child grid field, or nested grid field from parent
