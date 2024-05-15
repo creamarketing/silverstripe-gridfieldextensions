@@ -207,6 +207,9 @@ class GridFieldNestedForm extends AbstractGridFieldComponent implements
 
     public function getColumnContent($gridField, $record, $columnName)
     {
+        if ($gridField->getConfig()->getComponentsByType(GridFieldNestedForm::class)->count() > 1) {
+            throw new Exception('Only one GridFieldNestedForm component allowed per GridField');
+        }
         if ($this->atMaxNestingLevel($gridField)) {
             return '';
         }
